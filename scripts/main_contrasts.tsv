@@ -1,0 +1,52 @@
+	task	contrast	pretty name	left label	right label
+0	archi_standard	left-right_button_press	"Left vs right hand button press"	right hand	left hand
+1	archi_standard	reading-listening	"Listening to sentence vs reading a sentence"	read sentence	listen to sentence
+2	archi_standard	motor-cognitive	"Button presses vs narrative/computation"	cognitive tasks	button presses
+3	archi_standard	reading-checkerboard	Read sentence vs checkerboard	checkerboard	read sentence
+4	archi_standard	computation-sentences	"Mental subtraction vs sentence reading"	sentence	mental subtraction
+5	archi_standard	horizontal-vertical	"Horizontal vs vertical checkerboard"	vert. checkerboard	hor. checkerboard
+6	archi_spatial	saccades	Saccades versus fixation	fixation	saccades
+7	archi_spatial	hand-side	"Left or right hand vs hand palm or back"	hand palm or back	left or right hand
+8	archi_spatial	grasp-orientation	"Object grasping vs orientation reporting"	mimick orientation	object grasping
+9	archi_spatial	rotation_side	Hand palm or back vs fixation	fixation	hand palm or back
+10	archi_spatial	object_orientation	Image orientation reporting	fixation	mimick orientation
+11	archi_social	triangle_mental-random	"Mental motion vs random motion"	random motion	mental motion
+12	archi_social	false_belief-mechanistic_audio	"False belief tale vs mechanistic tale"	mechanistic tale	false belief tale
+13	archi_social	triangle_random	Randomly drifting figures	fixation	random motion
+14	archi_social	mechanistic_audio	Listening to a mechanistic tale	baseline	mechanistic tale
+15	archi_social	mechanistic_video	 Reading a mechanistic story	baseline	mechanistic story
+16	archi_social	non_speech_sound	Listen to natural sound	silence	natural sound
+17	archi_social	false_belief-mechanistic_video	"False belief story vs mechanistic story"	mechanistic story	false belief story
+18	archi_social	speech-non_speech	"Listen to voice sound vs natural sound"	natural sound	voice sound
+19	archi_emotional	expression_gender-control	Guess the gender from expression	visual pattern	expression gender
+20	archi_emotional	expression_intention-gender	"Guess expression intention vs expression gender"	expression gender	expression intention
+21	archi_emotional	face_gender-control	Guess the gender from face image	visual pattern	face gender
+22	archi_emotional	face_trusty-gender	"Assess face trustfulness vs gender"	face gender	face trusty
+23	hcp_language	story-math	"Listening to story vs mental additions"	math	story
+24	hcp_language	math	Mental additions	fixation	mental addition
+25	hcp_social	mental-random	"Mental motion vs random motion"	random motion	mental motion
+26	hcp_social	random	"Random motion vs fixation"	fixation	any motion
+27	hcp_gambling	punishment-reward	"Positive versus negative gambling outcome"	reward	punishement
+28	hcp_gambling	reward	Gambling with positive outcome	fixation	reward
+29	hcp_motor	left_hand-avg	"Move left hand vs right hand, feet and tongue"	any motion	left hand
+30	hcp_motor	right_hand-avg	"Move right hand vs left hand, feet and tongue"	any motion	right hand
+31	hcp_motor	left_foot-avg	"Move left foot vs right foot, hands and tongue"	any motion	left foot
+32	hcp_motor	right_foot-avg	"Move right foot vs left foot, hands and tongue"	any motion	right foot
+33	hcp_motor	tongue-avg	"Move tongue vs hands and feet"	any motion	tongue
+34	hcp_emotion	shape	Shape comparison	fixation cross	shape outline
+35	hcp_emotion	face-shape	"Emotional face comparison vs shape comparison"	shape outline	face image
+36	hcp_relational	relational-match	Relational comparison vs matching	visual matching	relational processing
+37	hcp_relational	match	Visual feature matching	fixation	visual matching
+38	hcp_wm	2back-0back	2-back vs 0-back	0-back	2-back
+39	hcp_wm	body-avg	"Body image versus face, place, tool"	any image	body image
+40	hcp_wm	face-avg	"Face image versus body, place, tool"	any image	face image
+41	hcp_wm	place-avg	"Place image versus face, body, tool"	any image	place image
+42	hcp_wm	tools-avg	"Tool image versus face, place, body"	any image	tool image
+43	language_	complex-simple	"Read sentence with complex vs simple syntax"	simple sentence	complex sentence
+44	language_	sentence-jabberwocky	Read sentence vs jabberwocky	read jabberwocky	read sentence
+45	language_	sentence-word	Read sentence vs words	read words	read sentence
+46	language_	word-consonant_string	"Read words vs consonant strings"	consonant strings	read words
+47	language_	jabberworcky-pseudo	"Read jabberwocky vs pseudo words"	read pseudo words	read jabberwocky
+48	language_	word-pseudo	Read words vs pseudo-words	read pseudo words	read words
+49	language_	pseudo-consonant_string	"Read pseudo words vs consonant strings"	consonant strings	read pseudo words
+50	language_	consonant_string	Read and encode consonant strings	fixation	consonant strings
