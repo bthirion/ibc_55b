@@ -16,7 +16,7 @@ import nibabel as nib
 from nilearn import plotting
 import pandas as pd
 
-from nilearn.image import resample_img, math_img, smooth_img, threshold_img
+from nilearn.image import resample_img, math_img, smooth_img, threshold_img, swap_img_hemispheres
 from nilearn.regions import connected_regions
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
@@ -75,7 +75,7 @@ for subject in subjects:
 
 roi_name = '55b'
 seed = [-50, 0, 47]
-if 0:
+if 1:
     # step 1: extract signal from the region
     roi_mask = make_roi_mask(np.array(seed), ref_affine, fwhm=3)
     roi_mask = math_img('im1 * im2', im1=roi_mask, im2=mask_gm)
