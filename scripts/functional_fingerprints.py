@@ -75,7 +75,7 @@ for subject in subjects:
 
 roi_name = '55b'
 seed = [-50, 0, 47]
-if 1:
+if 0:
     # step 1: extract signal from the region
     roi_mask = make_roi_mask(np.array(seed), ref_affine, fwhm=3)
     roi_mask = math_img('im1 * im2', im1=roi_mask, im2=mask_gm)
@@ -107,8 +107,10 @@ else:
     n_pos = X_pos.shape[0]
     labels = list(np.repeat(subjects, n_pos / 12))
     # step 2: extract signals from other regions
-    conf_mask = resample_img('Area55b/SaccadesMetaAnalysis.nii', ref_affine, ref_shape)
-    roi_mask = math_img('(im1 > .5) * im2', im1=conf_mask, im2=mask_gm)
+    #conf_mask = resample_img('Area55b/SaccadesMetaAnalysis.nii', ref_affine, ref_shape)
+    #roi_mask = math_img('(im1 > .5) * im2', im1=conf_mask, im2=mask_gm)
+    roi_mask = resample_img('Area55b/Area55b_Left.nii', ref_affine, ref_shape)
+    roi_mask = swap_img_hemispheres(math_img('(im1 > .5) * im2', im1=roi_mask, im2=mask_gm))
     roi_masker = NiftiMasker(mask_img=roi_mask, memory=cache, smoothing_fwhm=None,
                              standardize=True).fit()
 
