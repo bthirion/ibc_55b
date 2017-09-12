@@ -4,6 +4,7 @@ in hyperalignment procedure
 Author Bertrand Thirion 2017
 
 export PYTHONPATH=$PYTHONPATH:/volatile/thirion/mygit/hugo-richard-M2/internship_project:/volatile/thirion/mygit/ibc_analysis_pipeline/ibc_main/data_paper_scripts:/volatile/thirion/mygit/ibc_analysis_pipeline/ibc_main/high_level_analysis_scripts
+export PYTHONPATH=$PYTHONPATH:/home/parietal/bthirion/mygit/hugo-richard-M2/internship_project/:/home/parietal/bthirion/mygit/HBP/analysis_pipeline/ibc_main/data_paper_scripts/:/home/parietal/bthirion/mygit/HBP/analysis_pipeline/ibc_main/high_level_analysis_scripts/
 """
 import os
 import numpy as np
@@ -47,7 +48,8 @@ ref_affine, ref_shape = mask_gm.affine, mask_gm.shape
 
 # df = make_db('/neurospin/ibc/smooth_derivatives')
 df = data_parser(derivatives=SMOOTH_DERIVATIVES, conditions=CONTRASTS)
-conditions = df.contrast[df.modality == 'bold'].unique()
+#conditions = df.contrast[df.modality == 'bold'].unique()
+conditions = CONTRASTS.contrast.values
 n_conditions = len(conditions)
 
 # Mask of the ROI
@@ -65,6 +67,7 @@ path_test = []
 X_train = []
 X_test = []
 subjects = df.subject.unique()
+
 for subject in subjects:
     spath = [df[df.acquisition == 'ap'][df.subject == subject][df.contrast == condition].path.values[-1] for condition in conditions]
     path_train.append(spath)
@@ -137,6 +140,45 @@ label_img = nib.Nifti1Image(blobs, masker.affine_)
 label_img.to_filename(os.path.join(write_dir, 'blobs.nii.gz'))
 blob_vector = blobs[(masker.mask_img_).get_data() > 0]
 
+from sklearn.preprocessing import StandardScaler
+from sklearn import svm
+from sklearn.cross_validation import cross_val_score, ShuffleSplit
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.model_selection import LeaveOneGroupOut
+from sklearn.dummy import DummyClassifier
+
+Y_ = np.array(Y_test)
+X_pos = Y_[:, blob_vector == 38]
+X_pos = np.reshape(X_pos, (X_pos.shape[0] * X_pos.shape[1], X_pos.shape[2]))
+X_neg = Y_[:, blob_vector == 30]
+X_neg = np.reshape(X_neg, (X_neg.shape[0] * X_neg.shape[1], X_neg.shape[2]))
+n_pos = X_pos.shape[0]
+n_neg = X_neg.shape[0]
+X = np.vstack((X_pos, X_neg))
+X = StandardScaler().fit_transform(X)
+y = np.hstack((np.ones(n_pos), -np.ones(n_neg)))
+labels = np.hstack((np.repeat(np.arange(12), np.sum(blob_vector == 38)),
+                    np.repeat(np.arange(12), np.sum(blob_vector == 30)),
+))
+
+cv = LeaveOneGroupOut()
+
+clf = DummyClassifier()
+scores = cross_val_score(clf, X, y, cv=cv.split(X, y, labels))
+print('Dummy: ', scores.mean(),)
+
+clf = ExtraTreesClassifier(n_estimators=250, random_state=0)
+scores = cross_val_score(clf, X, y, cv=cv.split(X, y, labels))
+importances = clf.fit(X, y).feature_importances_
+print('RF: ', scores.mean(),)
+
+clf = svm.SVC(kernel='linear', C=1)
+scores = cross_val_score(clf, X, y, cv=cv.split(X, y, labels))
+print('SVM: ', scores.mean())
+coefs = np.ravel(clf.fit(X, y).coef_)
+
+
+"""
 labels_bottom = [LABELS[name][0] for name in conditions]
 labels_top = [LABELS[name][1] for name in conditions]
 ulabels = np.unique(blobs)
@@ -154,3 +196,4 @@ plt.figure()
 plt.scatter(consistency_X, consistency_Y)
 plt.plot(consistency_X, consistency_X, 'k')
 plt.show()
+"""
