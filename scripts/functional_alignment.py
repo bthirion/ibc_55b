@@ -3,7 +3,7 @@ in hyperalignment procedure
 
 Author Bertrand Thirion 2017
 
-export PYTHONPATH=$PYTHONPATH:/volatile/thirion/mygit/hugo-richard-M2/internship_project:/volatile/thirion/mygit/ibc_analysis_pipeline/ibc_main/data_paper_scripts:/volatile/thirion/mygit/ibc_analysis_pipeline/ibc_main/high_level_analysis_scripts
+export PYTHONPATH=$PYTHONPATH:/volatile/thirion/mygit/hugo-richard-M2/internship_project:/volatile/thirion/mygit/ibc_analysis_pipeline/ibc_public/data_paper_scripts:/volatile/thirion/mygit/ibc_analysis_pipeline/ibc_main/high_level_analysis_scripts
 export PYTHONPATH=$PYTHONPATH:/home/parietal/bthirion/mygit/hugo-richard-M2/internship_project/:/home/parietal/bthirion/mygit/HBP/analysis_pipeline/ibc_main/data_paper_scripts/:/home/parietal/bthirion/mygit/HBP/analysis_pipeline/ibc_main/high_level_analysis_scripts/
 """
 import os
@@ -20,7 +20,7 @@ from ridge_cv import RidgeCV
 from utils_viz import print_fingerprint
 from make_results_db import LABELS
 
-if 0:
+if 1:
     ibc = '/neurospin/ibc'
     cache = '/neurospin/tmp/bthirion'
 else:
@@ -62,43 +62,46 @@ roi_mask = math_img('im1 == %d' % roi_index, im1=atlas.maps)
 roi_mask = resample_img(roi_mask, ref_affine, ref_shape, interpolation='nearest')
 masker = NiftiMasker(mask_img=roi_mask, memory=mem).fit()
 
-path_train = []
-path_test = []
+path_train = {}
+path_test = {}
 X_train = []
 X_test = []
 subjects = df.subject.unique()
 
 for subject in subjects:
     spath = [df[df.acquisition == 'ap'][df.subject == subject][df.contrast == condition].path.values[-1] for condition in conditions]
-    path_train.append(spath)
-    X_train.append(masker.transform(spath).T)
+    path_train[subject] = spath
+    #X_train.append(masker.transform(spath).T)
     spath = [df[df.acquisition == 'pa'][df.subject == subject][df.contrast == condition].path.values[-1]for condition in conditions]
-    path_test.append(spath)
-    X_test.append(masker.transform(spath).T)
+    path_test[subject] = spath
+    #X_test.append(masker.transform(spath).T)
 
 alphas = np.logspace(3., 5., 3)
 n_jobs = 1
 n_voxels = roi_mask.get_data().sum()
 labels = np.zeros(n_voxels)
 
-algo = PieceWiseAlignment(labels, masker=None, method=RidgeCV(alphas=alphas),
+train_subject = 'sub-04'
+test_subjects = subjects
+algo = PieceWiseAlignment(n_pieces=1, method=RidgeCV(alphas=alphas), mask=roi_mask,
+                          perturbation=True,
                           n_jobs=n_jobs)
 algo_name = "ridgeCV"
 
-def hyperalign(X_train, X_test, algo, algo_name, train_subject, test_subjects):
-    Y_test = []
+def hyperalign(path_train, path_test, algo, train_subject, test_subjects):
+    Y_tf = []
     for test_subject in test_subjects:
-        delta_X =  X_train[train_subject] - X_train[test_subject]
-        algo.fit(X_train[test_subject], delta_X)
-        Y_test.append(X_test[test_subject] + algo.transform(X_test[test_subject]))
-    return(Y_test)
+        algo.fit(path_train[test_subject], path_train[train_subject])
+        Y_tf.append(algo.transform(path_test[test_subject]))
+    return(Y_tf)
+Y_tf = hyperalign(path_train, path_test, algo, train_subject, test_subjects)
 
-train_subjects = subjects
 
-train_subject = 3
-test_subjects = range(12)
-Y_test = hyperalign(X_train, X_test, algo, algo_name, train_subject, test_subjects)
+def one_sample_img(imgs):
+    pass
 
+def consistency_img(imgs):
+    pass
 
 def consistency_map(cube):
     """ return quasi-F map over the first dimension of the cube, averaged over last dimension"""
