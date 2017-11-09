@@ -111,13 +111,13 @@ def one_sample(cube):
     """ return amrginal t maps over the first dimension of the cube"""
     return (np.mean(cube, 0) /  np.std(cube, 0) * np.sqrt(cube.shape[0] - 1))
 
-def extract_blobs(x, masker, size_min=50):
+def extract_blobs(x, masker, size_min=50, percentile=80):
     """ Extract blobs by watershed"""
     from skimage.feature import peak_local_max
     from skimage.morphology import watershed
     from scipy import ndimage as ndi
     X = masker.inverse_transform(x).get_data()
-    threshold = np.percentile(x, 80)
+    threshold = np.percentile(x, percentile)
     local_maxi = peak_local_max(X,  indices=False)
     markers = ndi.label(local_maxi)[0]
     labels = watershed(-X, markers, mask=(X > threshold))
@@ -128,6 +128,8 @@ def extract_blobs(x, masker, size_min=50):
             labels[labels == label_] = 0
     return labels
 
+X_test = np.array([masker.transform(path_train[subject]).T for subject in subjects])
+Y_test = np.array([masker.transform(path_test[subject]).T for subject in subjects])
 
 consistency_X =  consistency_map(np.array(X_test))
 filename = os.path.join(write_dir, 'consistency_X.nii.gz')
@@ -150,18 +152,20 @@ from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.dummy import DummyClassifier
 
+label_pos = 1
+label_neg = 2
 Y_ = np.array(Y_test)
-X_pos = Y_[:, blob_vector == 38]
+X_pos = Y_[:, blob_vector == label_pos]
 X_pos = np.reshape(X_pos, (X_pos.shape[0] * X_pos.shape[1], X_pos.shape[2]))
-X_neg = Y_[:, blob_vector == 30]
+X_neg = Y_[:, blob_vector == label_neg]
 X_neg = np.reshape(X_neg, (X_neg.shape[0] * X_neg.shape[1], X_neg.shape[2]))
 n_pos = X_pos.shape[0]
 n_neg = X_neg.shape[0]
 X = np.vstack((X_pos, X_neg))
 X = StandardScaler().fit_transform(X)
 y = np.hstack((np.ones(n_pos), -np.ones(n_neg)))
-labels = np.hstack((np.repeat(np.arange(12), np.sum(blob_vector == 38)),
-                    np.repeat(np.arange(12), np.sum(blob_vector == 30)),
+labels = np.hstack((np.repeat(np.arange(12), np.sum(blob_vector == label_pos)),
+                    np.repeat(np.arange(12), np.sum(blob_vector == label_neg)),
 ))
 
 cv = LeaveOneGroupOut()
