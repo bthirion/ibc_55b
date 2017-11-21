@@ -94,7 +94,6 @@ def hyperalign(path_train, path_test, algo, train_subject, test_subjects):
         algo.fit(path_train[test_subject], path_train[train_subject])
         Y_tf.append(algo.transform(path_test[test_subject]))
     return(Y_tf)
-Y_tf = hyperalign(path_train, path_test, algo, train_subject, test_subjects)
 
 
 def one_sample_img(imgs):
@@ -128,6 +127,7 @@ def extract_blobs(x, masker, size_min=50, percentile=80):
             labels[labels == label_] = 0
     return labels
 
+Y_tf = hyperalign(path_train, path_test, algo, train_subject, test_subjects)
 X_test = np.array([masker.transform(path_train[subject]).T for subject in subjects])
 Y_test = np.array([masker.transform(path_test[subject]).T for subject in subjects])
 
