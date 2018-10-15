@@ -76,6 +76,7 @@ from sklearn.decomposition import PCA, FactorAnalysis
 from sklearn.covariance import ShrunkCovariance, LedoitWolf
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import GridSearchCV
+from sklearn.utils import check_random_state
 
 n_components = range(0, n_conditions, 5)
 
@@ -99,7 +100,24 @@ def shrunk_cov_score(X):
 def lw_score(X):
     return np.mean(cross_val_score(LedoitWolf(), X, cv=5))
 
+
+n_clusters = 3
 for X in data[:1]:
+    from sklearn.cluster import MiniBatchKMeans
+    rng = check_random_state(42)
+    mbk = MiniBatchKMeans(init='k-means++', n_clusters=n_clusters,
+                          batch_size=100,
+                          n_init=10, max_no_improvement=10, verbose=0,
+                          random_state=0).fit(X.T)
+    clusters = mbk.labels_
+    for label in np.unique(clusters):
+        pca_scores, fa_scores = compute_scores(X.T[clusters == label])
+        print(np.sum(clusters == label), pca_scores, fa_scores)
+
+stop
+
+for X in data[:1]:
+
     pca_scores, fa_scores = compute_scores(X.T)
     n_components_pca = n_components[np.argmax(pca_scores)]
     n_components_fa = n_components[np.argmax(fa_scores)]
@@ -134,4 +152,4 @@ for X in data[:1]:
     plt.ylabel('CV scores')
     plt.legend(loc='lower right')
 
-plt.show(blocking=False)
+plt.show(block=False)
