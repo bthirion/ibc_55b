@@ -7,7 +7,7 @@ import numpy as np
 import nibabel as nib
 from joblib import Memory
 from nilearn.image import resample_to_img, math_img
-from nilearn.plotting import plot_stat_map, show
+from nilearn.plotting import plot_stat_map, show, plot_roi
 from nilearn.input_data import NiftiMasker
 from ibc_public.utils_data import (
     data_parser, SMOOTH_DERIVATIVES, SUBJECTS, LABELS, CONTRASTS,
@@ -50,20 +50,20 @@ df = df[df.acquisition == 'ffx']
 conditions = df[df.modality == 'bold'].contrast.unique()
 n_conditions = len(conditions)
 
-masker = NiftiMasker(mask_img=mask_total, memory=mem).fit()
+masker = NiftiMasker(mask_img=mask_left, memory=mem).fit()
 data = []
 for subject in subject_list:
     imgs = df[df.subject == subject].path.values
-    X = masker.transform(imgs)
+    X = masker.transform(imgs).T
     data.append(X)
 
 #############################################################################
 # energy analysis
 for i, X in enumerate(data):
     if i == 0:
-        energy = np.mean(X ** 2, 0)
+        energy = np.mean(X ** 2, 1)
     else:
-        energy += np.mean(X ** 2, 0)
+        energy += np.mean(X ** 2, 1)
 
 energy /= len(subject_list)
 energy_img = masker.inverse_transform(energy)
@@ -78,7 +78,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.utils import check_random_state
 
-n_components = range(0, n_conditions, 5)
+n_components = range(0, 20, 3)
 
 def compute_scores(X):
     pca = PCA(svd_solver='full')
@@ -102,28 +102,41 @@ def lw_score(X):
 
 
 n_clusters = 3
-for X in data[:1]:
-    from sklearn.cluster import MiniBatchKMeans
-    rng = check_random_state(42)
-    mbk = MiniBatchKMeans(init='k-means++', n_clusters=n_clusters,
-                          batch_size=100,
-                          n_init=10, max_no_improvement=10, verbose=0,
-                          random_state=0).fit(X.T)
-    clusters = mbk.labels_
-    for label in np.unique(clusters):
-        pca_scores, fa_scores = compute_scores(X.T[clusters == label])
-        print(np.sum(clusters == label), pca_scores, fa_scores)
+mean_data = np.hstack(data)
+from sklearn.cluster import MiniBatchKMeans
+rng = check_random_state(42)
+mbk = MiniBatchKMeans(init='k-means++', n_clusters=n_clusters,
+                      batch_size=100,
+                      n_init=10, max_no_improvement=10, verbose=0,
+                      random_state=0).fit(mean_data)
+clusters = mbk.labels_
+cluster_img = masker.inverse_transform(clusters + 1)
+import matplotlib
+plot_roi(cluster_img, cmap=matplotlib.cm.cool, threshold=0, vmax=3)
 
+for X in data[:5]:
+    plt.figure(figsize=(8, 3))
+    for label, color in zip(np.unique(clusters), ['c', 'purple', 'pink']):
+        plt.subplot(1, 3, label + 1)
+        pca_scores, fa_scores = compute_scores(X[clusters == label])
+        print(np.sum(clusters == label), pca_scores, fa_scores)
+        plt.plot(n_components, pca_scores, color, label='PCA scores')
+        plt.plot(n_components, fa_scores, color, linestyle=':',
+                 label='FA scores')
+
+plt.show(block=False)
+_, counts = np.unique(clusters, return_counts=True)
+print(counts)
 stop
 
 for X in data[:1]:
 
-    pca_scores, fa_scores = compute_scores(X.T)
+    pca_scores, fa_scores = compute_scores(X)
     n_components_pca = n_components[np.argmax(pca_scores)]
     n_components_fa = n_components[np.argmax(fa_scores)]
 
     pca = PCA(svd_solver='full', n_components='mle')
-    pca.fit(X.T)
+    pca.fit(X)
     n_components_pca_mle = pca.n_components_
 
     print("best n_components by PCA CV = %d" % n_components_pca)
@@ -143,9 +156,9 @@ for X in data[:1]:
 
 
     # compare with other covariance estimators
-    plt.axhline(shrunk_cov_score(X.T), color='violet',
+    plt.axhline(shrunk_cov_score(X), color='violet',
                 label='Shrunk Covariance MLE', linestyle='-.')
-    plt.axhline(lw_score(X.T), color='orange',
+    plt.axhline(lw_score(X), color='orange',
                 label='LedoitWolf MLE' % n_components_pca_mle, linestyle='-.')
 
     plt.xlabel('nb of components')
