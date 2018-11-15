@@ -22,7 +22,7 @@ from ibc_public.utils_data import (
 import ibc_public
 
 SUBJECTS = [subject for subject in SUBJECTS if subject not in
-            ['sub-02', 'sub-08']]
+            ['sub-02', 'sub-08', 'sub-15']]
 
 if 1:
     cache = '/neurospin/tmp/bthirion'
@@ -48,6 +48,14 @@ mask_left = math_img('img > .5', img=resample_to_img(mask_left_hip, mask_gm))
 mask_right = math_img('img > .5', img=resample_to_img(mask_right_hip, mask_gm))
 mask_total = math_img('im1 + im2', im1=mask_left, im2=mask_right)
 
+side = 'right'
+if side == 'left':
+    mask_img = mask_left
+elif side == 'right':
+    mask_img = mask_right
+elif side == 'both':
+    mask_img = mask_total
+
 # Access to the data
 subject_list = SUBJECTS
 task_list = ['archi_standard', 'archi_spatial', 'archi_social',
@@ -60,7 +68,7 @@ df = df[df.acquisition == 'ffx']
 conditions = df[df.modality == 'bold'].contrast.unique()
 n_conditions = len(conditions)
 
-masker = NiftiMasker(mask_img=mask_right, memory=mem).fit()
+masker = NiftiMasker(mask_img=mask_img, memory=mem).fit()
 data = []
 for subject in subject_list:
     imgs = df[df.subject == subject].path.values
@@ -106,23 +114,41 @@ def shrunk_cov_score(X):
 def lw_score(X):
     return np.mean(cross_val_score(LedoitWolf(), X, cv=5))
 
-
 n_clusters = 3
 mean_data = np.hstack(data)
+xyz = np.rollaxis(np.indices(mask_img.shape), 0, 4)
+xyz_image = nib.Nifti1Image(xyz, mask_img.affine)
+
+"""
+from nilearn.regions import Parcellations
+
+ward = Parcellations(method='ward', n_parcels=n_clusters, mask=mask_img,
+                     standardize=False, memory='nilearn_cache', memory_level=1,
+                     smoothing_fwhm=5, verbose=1)
+ward.fit(xyz_image)  # df.path.values)
+"""
+"""
+ward.fit(df.path.values[np.random.rand(len(df.path.values)) > .95])
+cluster_img = ward.labels_img_
+clusters = cluster_img.get_data()[mask_img.get_data() > 0] - 1
+"""
 rng = check_random_state(42)
 mbk = MiniBatchKMeans(init='k-means++', n_clusters=n_clusters,
                       batch_size=100,
                       n_init=10, max_no_improvement=10, verbose=0,
-                      random_state=0).fit(mean_data)
+                      random_state=0).fit(xyz[mask_img.get_data() > 0])
 clusters = mbk.labels_
 cluster_img = masker.inverse_transform(clusters + 1)
+
 _, counts = np.unique(clusters, return_counts=True)
 print(counts)
 
 plot_roi(cluster_img, cmap=matplotlib.cm.cool, threshold=0, vmax=3)
+plot_roi(cluster_img, cmap=matplotlib.cm.cool, threshold=0, vmax=3,
+         output_file=os.path.join(write_dir, 'clusters_%s.png' % side))
 
-"""
-for X in data:
+
+for X, subject in zip(data, subject_list):
     plt.figure(figsize=(8, 3))
     for label, color in zip(np.unique(clusters), ['c', 'purple', 'pink']):
         plt.subplot(1, 3, label + 1)
@@ -131,7 +157,9 @@ for X in data:
         plt.plot(n_components, pca_scores, color, label='PCA scores')
         plt.plot(n_components, fa_scores, color, linestyle=':',
                  label='FA scores')
-"""
+    plt.legend()
+    plt.savefig(os.path.join(write_dir, 'dimension_%s_%s.png' %
+                (subject, side)))
 
 """
 for X in data[:1]:
@@ -215,7 +243,13 @@ for subject in SUBJECTS:
         q += 1
 mean_correlation /= q
 
+cut_coords =  [3, -26, 2 ]
 for i in range(3):
-    plot_stat_map(rs_masker.inverse_transform(mean_correlation[i]))
+    correlation_img = rs_masker.inverse_transform(mean_correlation[i])
+    plot_stat_map(correlation_img, cut_coords=cut_coords,
+                  output_file=os.path.join(
+                      write_dir, 'correlation_%s_%d.png' % (side, i)))
+    correlation_img.to_filename(
+        os.path.join(write_dir, 'correlation_%s_%d.nii.gz' % (side, i)))
 
 plt.show(block=False)
