@@ -5,6 +5,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
+from pandas import DataFrame
 from sklearn.decomposition import PCA, FactorAnalysis
 from sklearn.covariance import ShrunkCovariance, LedoitWolf
 from sklearn.model_selection import cross_val_score
@@ -92,7 +93,7 @@ plot_stat_map(energy_img)
 n_components = range(0, 20, 3)
 
 
-def compute_scores(X):
+def compute_scores(X, n_components):
     pca = PCA(svd_solver='full')
     fa = FactorAnalysis()
     pca_scores, fa_scores = [], []
@@ -137,7 +138,9 @@ mbk = MiniBatchKMeans(init='k-means++', n_clusters=n_clusters,
                       batch_size=100,
                       n_init=10, max_no_improvement=10, verbose=0,
                       random_state=0).fit(xyz[mask_img.get_data() > 0])
-clusters = mbk.labels_
+
+order = np.argsort(- mbk.cluster_centers_[:, 1])
+clusters = order[mbk.labels_]
 cluster_img = masker.inverse_transform(clusters + 1)
 
 _, counts = np.unique(clusters, return_counts=True)
@@ -148,18 +151,56 @@ plot_roi(cluster_img, cmap=matplotlib.cm.cool, threshold=0, vmax=3,
          output_file=os.path.join(write_dir, 'clusters_%s.png' % side))
 
 
+all_subjects = []
+all_pca_scores = []
+all_fa_scores = []
+all_clusters = []
+all_hemispheres = []
 for X, subject in zip(data, subject_list):
     plt.figure(figsize=(8, 3))
     for label, color in zip(np.unique(clusters), ['c', 'purple', 'pink']):
         plt.subplot(1, 3, label + 1)
-        pca_scores, fa_scores = compute_scores(X[clusters == label])
+        pca_scores, fa_scores = compute_scores(
+            X[clusters == label], n_components)
         print(np.sum(clusters == label), pca_scores, fa_scores)
         plt.plot(n_components, pca_scores, color, label='PCA scores')
         plt.plot(n_components, fa_scores, color, linestyle=':',
                  label='FA scores')
+        all_subjects.append(subject)
+        all_pca_scores.append(pca_scores)
+        all_fa_scores.append(fa_scores)
+        all_clusters.append(label)
+        all_hemispheres.append(side)
+
     plt.legend()
     plt.savefig(os.path.join(write_dir, 'dimension_%s_%s.png' %
                 (subject, side)))
+
+all_subjects = np.array(all_subjects)
+all_pca_scores = np.array(all_pca_scores).T
+all_fa_scores = np.array(all_fa_scores).T
+all_clusters = np.array(all_clusters)
+all_hemispheres = np.array(all_hemispheres)
+
+scores = {'subject': all_subjects,
+          'hemisphere': all_hemispheres,
+          'region': all_clusters,
+          'PCA, k=0': all_pca_scores[0],
+          'PCA, k=3': all_pca_scores[1],
+          'PCA, k=6': all_pca_scores[2],
+          'PCA, k=9': all_pca_scores[3],
+          'PCA, k=12': all_pca_scores[4],
+          'PCA, k=15': all_pca_scores[5],
+          'PCA, k=18': all_pca_scores[6],
+          'FA, k=0': all_fa_scores[0],
+          'FA, k=3': all_fa_scores[1],
+          'FA, k=6': all_fa_scores[2],
+          'FA, k=9': all_fa_scores[3],
+          'FA, k=12': all_fa_scores[4],
+          'FA, k=15': all_fa_scores[5],
+          'FA, k=18': all_fa_scores[6], }
+
+DataFrame(scores).to_csv(os.path.join(write_dir, 'scores.csv'))
 
 """
 for X in data[:1]:
