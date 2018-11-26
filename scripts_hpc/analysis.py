@@ -139,8 +139,10 @@ mbk = MiniBatchKMeans(init='k-means++', n_clusters=n_clusters,
                       n_init=10, max_no_improvement=10, verbose=0,
                       random_state=0).fit(xyz[mask_img.get_data() > 0])
 
-order = np.argsort(- mbk.cluster_centers_[:, 1])
-clusters = order[mbk.labels_]
+order = np.argsort(mbk.cluster_centers_[:, 1])
+label = np.arange(3)
+label[order] = np.arange(3)
+clusters = label[mbk.labels_]
 cluster_img = masker.inverse_transform(clusters + 1)
 
 _, counts = np.unique(clusters, return_counts=True)
@@ -149,7 +151,6 @@ print(counts)
 plot_roi(cluster_img, cmap=matplotlib.cm.cool, threshold=0, vmax=3)
 plot_roi(cluster_img, cmap=matplotlib.cm.cool, threshold=0, vmax=3,
          output_file=os.path.join(write_dir, 'clusters_%s.png' % side))
-
 
 all_subjects = []
 all_pca_scores = []
@@ -200,7 +201,7 @@ scores = {'subject': all_subjects,
           'FA, k=15': all_fa_scores[5],
           'FA, k=18': all_fa_scores[6], }
 
-DataFrame(scores).to_csv(os.path.join(write_dir, 'scores.csv'))
+DataFrame(scores).to_csv(os.path.join(write_dir, 'scores_%s.csv' % side))
 
 """
 for X in data[:1]:
