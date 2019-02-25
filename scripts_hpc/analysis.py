@@ -49,7 +49,7 @@ mask_left = math_img('img > .5', img=resample_to_img(mask_left_hip, mask_gm))
 mask_right = math_img('img > .5', img=resample_to_img(mask_right_hip, mask_gm))
 mask_total = math_img('im1 + im2', im1=mask_left, im2=mask_right)
 
-side = 'right'
+side = 'left'
 if side == 'left':
     mask_img = mask_left
 elif side == 'right':
@@ -151,7 +151,7 @@ print(counts)
 plot_roi(cluster_img, cmap=matplotlib.cm.cool, threshold=0, vmax=3)
 plot_roi(cluster_img, cmap=matplotlib.cm.cool, threshold=0, vmax=3,
          output_file=os.path.join(write_dir, 'clusters_%s.png' % side))
-
+"""
 all_subjects = []
 all_pca_scores = []
 all_fa_scores = []
@@ -202,7 +202,7 @@ scores = {'subject': all_subjects,
           'FA, k=18': all_fa_scores[6], }
 
 DataFrame(scores).to_csv(os.path.join(write_dir, 'scores_%s.csv' % side))
-
+"""
 """
 for X in data[:1]:
 
@@ -271,6 +271,7 @@ def compute_connectivity(subject, session, acq):
 
 
 q = 0
+correlations = []
 for subject in SUBJECTS:
     for task in ['mtt1', 'mtt2']:
         subject_session = np.array(get_subject_session(task))
@@ -278,14 +279,29 @@ for subject in SUBJECTS:
         for acq in ['ap', 'pa']:
             print(subject, session, acq)
             correlation = compute_connectivity(subject, session, acq)
+            correlations.append(correlation)
         if q == 0:
             mean_correlation = correlation
         else:
             mean_correlation += correlation
         q += 1
 mean_correlation /= q
+correlations = np.array(correlations)
+X = np.rollaxis(correlations, 1)
+import scipy.stats as sts
 
 cut_coords =  [3, -26, 2 ]
+for pair in [(0, 1), (1, 2), (2, 0)]:
+    t_, p_ = sts.ttest_1samp(X[pair[1]] - X[pair[0]], 0)
+    correlation_img = rs_masker.inverse_transform(t_)
+    plot_stat_map(correlation_img, cut_coords=cut_coords,
+                  output_file=os.path.join(
+                      write_dir, 'correlation_%s_%d-%d.png' %
+                      (side, pair[1], pair[0])))
+    correlation_img.to_filename(
+        os.path.join(write_dir, 'correlation_%s_%d-%d.nii.gz' % 
+            (side, pair[1], pair[0])))
+
 for i in range(3):
     correlation_img = rs_masker.inverse_transform(mean_correlation[i])
     plot_stat_map(correlation_img, cut_coords=cut_coords,
@@ -295,3 +311,4 @@ for i in range(3):
         os.path.join(write_dir, 'correlation_%s_%d.nii.gz' % (side, i)))
 
 plt.show(block=False)
+
